@@ -44,7 +44,8 @@ pub async fn create_coupon(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:coupons:write"),
-    ).await?;
+    )
+    .await?;
     let code = body["code"].as_str().unwrap_or_default().trim().to_string();
     if code.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "code required".into()));
@@ -55,7 +56,9 @@ pub async fn create_coupon(
     };
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let id = Uuid::new_v4();
     sqlx::query(
         r#"INSERT INTO billing.coupons (id, env_id, code, discount_kind, value, redemption_limit, expires_at)
@@ -104,10 +107,13 @@ pub async fn redeem_coupon(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:coupons:write"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // Row-lock the coupon — the limit check + increment are atomic.
     let coupon = sqlx::query(
@@ -142,7 +148,9 @@ pub async fn redeem_coupon(
         .map_err(err_db)?;
 
     conn.commit().await.map_err(err_db)?;
-    Ok(Json(serde_json::json!({ "coupon_id": coupon_id, "status": "redeemed" })))
+    Ok(Json(
+        serde_json::json!({ "coupon_id": coupon_id, "status": "redeemed" }),
+    ))
 }
 
 // ── Credits (BIL-8) ─────────────────────────────────────────────────────
@@ -170,7 +178,8 @@ pub async fn create_credit(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:credits:write"),
-    ).await?;
+    )
+    .await?;
     let customer_id: Uuid = body["customer_id"]
         .as_str()
         .and_then(|s| Uuid::parse_str(s).ok())
@@ -178,13 +187,20 @@ pub async fn create_credit(
     let amount: Decimal = body["amount"]
         .as_str()
         .and_then(|s| s.parse().ok())
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "amount must be a decimal string".into()))?;
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                "amount must be a decimal string".into(),
+            )
+        })?;
     if amount <= Decimal::ZERO {
         return Err((StatusCode::BAD_REQUEST, "amount must be positive".into()));
     }
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let id = Uuid::new_v4();
     sqlx::query(
         r#"INSERT INTO billing.credits (id, env_id, customer_id, remaining, currency)
@@ -230,7 +246,8 @@ pub async fn create_credit_note(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:credit-notes:write"),
-    ).await?;
+    )
+    .await?;
     let invoice_id: Uuid = body["invoice_id"]
         .as_str()
         .and_then(|s| Uuid::parse_str(s).ok())
@@ -238,23 +255,28 @@ pub async fn create_credit_note(
     let amount: Decimal = body["amount"]
         .as_str()
         .and_then(|s| s.parse().ok())
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "amount must be a decimal string".into()))?;
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                "amount must be a decimal string".into(),
+            )
+        })?;
     if amount <= Decimal::ZERO {
         return Err((StatusCode::BAD_REQUEST, "amount must be positive".into()));
     }
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // Row-lock the invoice — the paid-amount bound is computed atomically.
-    let invoice = sqlx::query(
-        "SELECT amount_paid FROM billing.invoices WHERE id = $1 FOR UPDATE",
-    )
-    .bind(invoice_id)
-    .fetch_optional(&mut *conn)
-    .await
-    .map_err(err_db)?
-    .ok_or_else(|| (StatusCode::NOT_FOUND, "invoice not found".into()))?;
+    let invoice = sqlx::query("SELECT amount_paid FROM billing.invoices WHERE id = $1 FOR UPDATE")
+        .bind(invoice_id)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(err_db)?
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "invoice not found".into()))?;
     let paid: Decimal = invoice.get("amount_paid");
     if amount > paid {
         return Err((
@@ -287,7 +309,9 @@ pub async fn create_credit_note(
     .map_err(err_db)?;
 
     conn.commit().await.map_err(err_db)?;
-    Ok(Json(serde_json::json!({ "credit_note_id": id, "status": "issued" })))
+    Ok(Json(
+        serde_json::json!({ "credit_note_id": id, "status": "issued" }),
+    ))
 }
 
 /// `POST /v1/credit-notes/{id}/void` — void a credit note (terminal).
@@ -313,10 +337,13 @@ pub async fn void_credit_note(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:credit-notes:write"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     let result = sqlx::query(
         "UPDATE billing.credit_notes SET status = 'void' WHERE id = $1 AND status = 'issued'",
@@ -358,14 +385,21 @@ pub async fn create_tax_rate(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:tax-rates:write"),
-    ).await?;
-    let jurisdiction = body["jurisdiction"].as_str().unwrap_or_default().trim().to_string();
+    )
+    .await?;
+    let jurisdiction = body["jurisdiction"]
+        .as_str()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
     if jurisdiction.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "jurisdiction required".into()));
     }
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let id = Uuid::new_v4();
     sqlx::query(
         r#"INSERT INTO billing.tax_rates (id, env_id, jurisdiction, inclusive, rate_bps)
@@ -408,10 +442,13 @@ pub async fn pause_subscription(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:subscriptions:write"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     let result = sqlx::query(
         "UPDATE billing.subscriptions SET status = 'paused' WHERE id = $1 AND status IN ('active', 'past_due')",
@@ -461,10 +498,13 @@ pub async fn resume_subscription(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:subscriptions:write"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // The cycle math: days elapsed in the current period prorate the
     // resume (the pause consumed them).
@@ -506,7 +546,9 @@ pub async fn resume_subscription(
     .map_err(err_db)?;
 
     conn.commit().await.map_err(err_db)?;
-    Ok(Json(serde_json::json!({ "status": "active", "remaining_days": remaining })))
+    Ok(Json(
+        serde_json::json!({ "status": "active", "remaining_days": remaining }),
+    ))
 }
 
 // ── Plan-change proration quote (BIL-14) ─────────────────────────────────
@@ -547,10 +589,13 @@ pub async fn proration_quote(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:subscriptions:read"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     let sub = sqlx::query(
         "SELECT billing_cycle_anchor, current_period_end FROM billing.subscriptions WHERE id = $1",
@@ -579,10 +624,12 @@ pub async fn proration_quote(
     .map(|r| r.get::<Decimal, _>("unit_amount"))
     .unwrap_or(Decimal::ZERO);
 
-    let new_unit: Decimal = q
-        .new_unit_amount
-        .parse()
-        .map_err(|_| (StatusCode::BAD_REQUEST, "new_unit_amount must be a decimal string".into()))?;
+    let new_unit: Decimal = q.new_unit_amount.parse().map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            "new_unit_amount must be a decimal string".into(),
+        )
+    })?;
 
     let cycle = (period_end - anchor).num_days().max(1);
     let used = proration::days_elapsed(anchor, chrono::Utc::now(), "month");
@@ -651,11 +698,7 @@ pub async fn mark_invoice_paid(
 
 /// Convenience re-export for the consumer wiring (the SSE loop lives in
 /// the server module; it dispatches here).
-pub async fn handle_charge_succeeded(
-    state: &AppState,
-    env_id: Uuid,
-    payload: serde_json::Value,
-) {
+pub async fn handle_charge_succeeded(state: &AppState, env_id: Uuid, payload: serde_json::Value) {
     // The billing-issued charge carries idempotency_key `invoice-{id}`.
     let idempotency_key = payload["idempotency_key"].as_str().unwrap_or("");
     let Some(invoice_str) = idempotency_key.strip_prefix("invoice-") else {

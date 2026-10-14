@@ -86,7 +86,8 @@ pub fn spawn_family_consumer<F, Fut>(
                             let Some(data) = line.strip_prefix("data: ") else {
                                 continue;
                             };
-                            if let Ok(msg) = serde_json::from_str::<serde_json::Value>(data.trim()) {
+                            if let Ok(msg) = serde_json::from_str::<serde_json::Value>(data.trim())
+                            {
                                 if let Some(envelope) = parse_envelope(&msg) {
                                     dispatch(envelope).await;
                                 }
@@ -116,17 +117,22 @@ pub fn spawn_consumers(state: AppState) {
     // Invoice-paid consumer: reacts to charge:succeeded for the
     // billing-issued charges (idempotency_key `invoice-{id}`).
     let invoice_state = state;
-    spawn_family_consumer(bus, "payments", "bill8:billing:invoice", move |envelope: Envelope| {
-        let state = invoice_state.clone();
-        async move {
-            if envelope.event_type == "bill8:payments:charge:succeeded" {
-                crate::handlers::billing_richness::handle_charge_succeeded(
-                    &state,
-                    envelope.env_id,
-                    envelope.payload,
-                )
-                .await;
+    spawn_family_consumer(
+        bus,
+        "payments",
+        "bill8:billing:invoice",
+        move |envelope: Envelope| {
+            let state = invoice_state.clone();
+            async move {
+                if envelope.event_type == "bill8:payments:charge:succeeded" {
+                    crate::handlers::billing_richness::handle_charge_succeeded(
+                        &state,
+                        envelope.env_id,
+                        envelope.payload,
+                    )
+                    .await;
+                }
             }
-        }
-    });
+        },
+    );
 }

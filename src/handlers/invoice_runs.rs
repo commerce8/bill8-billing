@@ -41,7 +41,9 @@ pub async fn run_invoice_cycle(
     let a = auth::verify_token(&state.config, &headers).await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // Subscriptions active or past-due whose cycle has ended (paused
     // and canceled subscriptions generate no invoices — BIL-11).
@@ -101,7 +103,10 @@ pub async fn run_invoice_cycle(
             .bind(Uuid::new_v4())
             .bind(a.env_id())
             .bind(invoice_id)
-            .bind(format!("subscription item {}", item.get::<Uuid, _>("price_id")))
+            .bind(format!(
+                "subscription item {}",
+                item.get::<Uuid, _>("price_id")
+            ))
             .bind(line)
             .execute(&mut *conn)
             .await
@@ -144,16 +149,13 @@ pub async fn run_invoice_cycle(
         }
 
         // Tax lines (BIL-16): explicit cent-exact lines per jurisdiction.
-        let tax_rows = sqlx::query(
-            "SELECT id, jurisdiction, rate_bps FROM billing.tax_rates",
-        )
-        .fetch_all(&mut *conn)
-        .await
-        .map_err(err_db)?;
+        let tax_rows = sqlx::query("SELECT id, jurisdiction, rate_bps FROM billing.tax_rates")
+            .fetch_all(&mut *conn)
+            .await
+            .map_err(err_db)?;
         for tax in &tax_rows {
             let rate_bps: i32 = tax.get("rate_bps");
-            let tax_amount = (total * Decimal::from(rate_bps) / Decimal::from(10_000))
-                .round_dp(2);
+            let tax_amount = (total * Decimal::from(rate_bps) / Decimal::from(10_000)).round_dp(2);
             if tax_amount > Decimal::ZERO {
                 sqlx::query(
                     r#"INSERT INTO billing.invoice_items
@@ -220,13 +222,11 @@ pub async fn run_invoice_cycle(
                     .execute(&mut *conn)
                     .await
                     .map_err(err_db)?;
-                    sqlx::query(
-                        "UPDATE billing.invoices SET status = 'retrying' WHERE id = $1",
-                    )
-                    .bind(invoice_id)
-                    .execute(&mut *conn)
-                    .await
-                    .map_err(err_db)?;
+                    sqlx::query("UPDATE billing.invoices SET status = 'retrying' WHERE id = $1")
+                        .bind(invoice_id)
+                        .execute(&mut *conn)
+                        .await
+                        .map_err(err_db)?;
                 }
             }
         }
@@ -243,7 +243,9 @@ pub async fn run_invoice_cycle(
     }
 
     conn.commit().await.map_err(err_db)?;
-    Ok(Json(serde_json::json!({ "invoiced": invoiced, "charged": charged })))
+    Ok(Json(
+        serde_json::json!({ "invoiced": invoiced, "charged": charged }),
+    ))
 }
 
 /// Charge an invoice through the payments public API (the workload
@@ -309,10 +311,13 @@ pub async fn upcoming_invoice(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:invoices:read"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // The subscription's items resolve the projection; a preview is the
     // SAME code path the run uses (read-only projection of it).
@@ -328,7 +333,10 @@ pub async fn upcoming_invoice(
     .map_err(err_db)?;
 
     if items.is_empty() {
-        return Err((StatusCode::NOT_FOUND, "subscription not found or has no items".into()));
+        return Err((
+            StatusCode::NOT_FOUND,
+            "subscription not found or has no items".into(),
+        ));
     }
 
     let mut total = Decimal::ZERO;
@@ -399,15 +407,18 @@ pub async fn dunning_retry(
     let a = auth::verify_token(&state.config, &headers).await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // The ladder configuration: max retries per env (default 3).
-    let max_retries: i64 = sqlx::query("SELECT COALESCE(MAX(max_retries), 3) as m FROM billing.dunning_configs")
-        .fetch_optional(&mut *conn)
-        .await
-        .map_err(err_db)?
-        .map(|r| r.get("m"))
-        .unwrap_or(3);
+    let max_retries: i64 =
+        sqlx::query("SELECT COALESCE(MAX(max_retries), 3) as m FROM billing.dunning_configs")
+            .fetch_optional(&mut *conn)
+            .await
+            .map_err(err_db)?
+            .map(|r| r.get("m"))
+            .unwrap_or(3);
 
     // Past-due (retrying) invoices with their attempt counts.
     let past_due = sqlx::query(
@@ -434,11 +445,13 @@ pub async fn dunning_retry(
                 .await
                 .map_err(err_db)?;
             }
-            sqlx::query("UPDATE billing.invoices SET status = 'void' WHERE id = $1 AND status = 'retrying'")
-                .bind(invoice_id)
-                .execute(&mut *conn)
-                .await
-                .map_err(err_db)?;
+            sqlx::query(
+                "UPDATE billing.invoices SET status = 'void' WHERE id = $1 AND status = 'retrying'",
+            )
+            .bind(invoice_id)
+            .execute(&mut *conn)
+            .await
+            .map_err(err_db)?;
             exhausted += 1;
             continue;
         }
@@ -471,5 +484,7 @@ pub async fn dunning_retry(
         serde_json::json!({ "recovered": recovered, "exhausted": exhausted }),
     )
     .await;
-    Ok(Json(serde_json::json!({ "recovered": recovered, "exhausted": exhausted })))
+    Ok(Json(
+        serde_json::json!({ "recovered": recovered, "exhausted": exhausted }),
+    ))
 }

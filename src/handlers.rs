@@ -24,8 +24,8 @@ use uuid::Uuid;
 
 use crate::auth;
 use crate::config::BillingConfig;
-use crate::proration;
 use crate::policy::Engine;
+use crate::proration;
 
 /// Shared application state bound into the shell.
 #[derive(Clone)]
@@ -66,7 +66,8 @@ pub async fn emit_event(
     payload: serde_json::Value,
 ) {
     if let Err(e) =
-        sentin8::bus::outbox::insert_outbox_row_pool(pool, env_id, "billing", event_type, &payload).await
+        sentin8::bus::outbox::insert_outbox_row_pool(pool, env_id, "billing", event_type, &payload)
+            .await
     {
         tracing::warn!(error = %e, event_type, "bill8:billing: failed to emit outbox event");
     }
@@ -103,14 +104,17 @@ pub async fn create_product(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:products:write"),
-    ).await?;
+    )
+    .await?;
     let name = body["name"].as_str().unwrap_or_default().trim().to_string();
     if name.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "name required".into()));
     }
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let id = Uuid::new_v4();
     let row = sqlx::query(
         r#"INSERT INTO billing.products (id, env_id, name)
@@ -157,7 +161,8 @@ pub async fn create_price(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:prices:write"),
-    ).await?;
+    )
+    .await?;
     let product_id: Uuid = body["product_id"]
         .as_str()
         .and_then(|s| Uuid::parse_str(s).ok())
@@ -166,12 +171,19 @@ pub async fn create_price(
     let unit_amount: Decimal = body["unit_amount"]
         .as_str()
         .and_then(|s| s.parse().ok())
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "unit_amount must be a decimal string".into()))?;
+        .ok_or_else(|| {
+            (
+                StatusCode::BAD_REQUEST,
+                "unit_amount must be a decimal string".into(),
+            )
+        })?;
     let currency = body["currency"].as_str().unwrap_or("USD").to_string();
     let pricing_model = body["pricing_model"].as_str().unwrap_or("flat").to_string();
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
     let id = Uuid::new_v4();
     let row = sqlx::query(
         r#"INSERT INTO billing.prices (id, env_id, product_id, interval, pricing_model, unit_amount, currency)
@@ -222,10 +234,13 @@ pub async fn list_prices(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:prices:read"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     let rows = sqlx::query(
         "SELECT id, product_id, interval, pricing_model, unit_amount, currency, created_at FROM billing.prices ORDER BY created_at DESC LIMIT 500",
@@ -273,10 +288,13 @@ pub async fn create_subscription(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:subscriptions:write"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // Idempotency.
     if let Some(key) = req.idempotency_key.as_deref() {
@@ -295,14 +313,12 @@ pub async fn create_subscription(
     }
 
     // Resolve the price's interval for the cycle math.
-    let price = sqlx::query(
-        "SELECT interval FROM billing.prices WHERE id = $1",
-    )
-    .bind(req.price_id)
-    .fetch_optional(&mut *conn)
-    .await
-    .map_err(err_db)?
-    .ok_or_else(|| (StatusCode::NOT_FOUND, "price not found".into()))?;
+    let price = sqlx::query("SELECT interval FROM billing.prices WHERE id = $1")
+        .bind(req.price_id)
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(err_db)?
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "price not found".into()))?;
     let interval: Option<String> = price.get("interval");
     let period = interval.clone().unwrap_or_else(|| "month".into());
 
@@ -310,7 +326,11 @@ pub async fn create_subscription(
     let anchor = req.billing_cycle_anchor.unwrap_or(now);
     let current_period_end = proration::next_cycle_start(anchor, &period);
 
-    let status = if req.trial_end.is_some() { "trialing" } else { "incomplete" };
+    let status = if req.trial_end.is_some() {
+        "trialing"
+    } else {
+        "incomplete"
+    };
     let id = Uuid::new_v4();
     let row = sqlx::query(
         r#"INSERT INTO billing.subscriptions
@@ -387,10 +407,13 @@ pub async fn list_subscriptions(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:subscriptions:read"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     let rows = sqlx::query(
         "SELECT id, env_id, customer_id, status, trial_end, billing_cycle_anchor, current_period_end, created_at FROM billing.subscriptions ORDER BY created_at DESC LIMIT 200",
@@ -424,7 +447,8 @@ pub async fn get_subscription(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:subscriptions:read"),
-    ).await?;
+    )
+    .await?;
     get_subscription_row(&state, a.env_id(), id).await
 }
 
@@ -452,10 +476,13 @@ pub async fn create_usage_record(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:usage-records:write"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.begin().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     // Duplicate idempotency key → return the original (counted once).
     if let Some(key) = req.idempotency_key.as_deref() {
@@ -512,10 +539,13 @@ pub async fn list_invoices(
         &a,
         &headers,
         sentin8::shield::EvalTarget::new("bill8:billing:invoices:read"),
-    ).await?;
+    )
+    .await?;
 
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, a.env_id()).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, a.env_id())
+        .await
+        .map_err(err_db)?;
 
     let rows = sqlx::query(
         "SELECT id, env_id, customer_id, subscription_id, amount_due, amount_paid, currency, status, period_start, period_end, created_at FROM billing.invoices ORDER BY created_at DESC LIMIT 200",
@@ -533,7 +563,9 @@ async fn get_subscription_row(
     id: Uuid,
 ) -> Result<Json<Subscription>, (StatusCode, String)> {
     let mut conn = state.pool.acquire().await.map_err(err_db)?;
-    set_tenant_context(&mut conn, env_id).await.map_err(err_db)?;
+    set_tenant_context(&mut conn, env_id)
+        .await
+        .map_err(err_db)?;
     let row = sqlx::query(
         "SELECT id, env_id, customer_id, status, trial_end, billing_cycle_anchor, current_period_end, created_at FROM billing.subscriptions WHERE id = $1",
     )

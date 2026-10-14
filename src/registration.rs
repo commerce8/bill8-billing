@@ -6,20 +6,18 @@
 //! Service self-registration data for Bill8:Billing.
 
 use sentin8::registration::{
-    AdminScope, AdminUi, AdminUiPage, ErrorCode, M2mGrant, PgRole, PolicySetDecl,
-    Registration, SqlMigration,
+    AdminScope, AdminUi, AdminUiPage, ErrorCode, M2mGrant, PgRole, PolicySetDecl, Registration,
+    SqlMigration,
 };
 use utoipa::OpenApi;
 
-const PG_ROLES: &[PgRole] = &[
-    PgRole {
-        scope: "bill8:billing:read,bill8:billing:write",
-        role: "bill8_billing_service",
-        bypass_rls: false,
-        database: "bill8",
-        cross_schema_grants: &[],
-    },
-];
+const PG_ROLES: &[PgRole] = &[PgRole {
+    scope: "bill8:billing:read,bill8:billing:write",
+    role: "bill8_billing_service",
+    bypass_rls: false,
+    database: "bill8",
+    cross_schema_grants: &[],
+}];
 
 const M2M_GRANTS: &[M2mGrant] = &[
     M2mGrant {
@@ -64,31 +62,106 @@ const M2M_GRANTS: &[M2mGrant] = &[
 ];
 
 const ADMIN_SCOPES: &[AdminScope] = &[
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:products:read" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:products:write" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:prices:read" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:prices:write" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:subscriptions:read" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:subscriptions:write" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:invoices:read" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:invoices:write" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:usage-records:write" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:policy:read" },
-    AdminScope::Typed { role: "bill8:billing:admin", scope: "bill8:billing:policy:write" },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:products:read",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:products:write",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:prices:read",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:prices:write",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:subscriptions:read",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:subscriptions:write",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:invoices:read",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:invoices:write",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:usage-records:write",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:policy:read",
+    },
+    AdminScope::Typed {
+        role: "bill8:billing:admin",
+        scope: "bill8:billing:policy:write",
+    },
 ];
 
 const ERROR_CODES: &[ErrorCode] = &[
-    ErrorCode { enum_name: "BillingSubscriptionNotFound", error_code: "billing_subscription_not_found", status_code: 404 },
-    ErrorCode { enum_name: "BillingPriceNotFound", error_code: "billing_price_not_found", status_code: 404 },
-    ErrorCode { enum_name: "BillingInvoiceImmutable", error_code: "billing_invoice_immutable", status_code: 422 },
+    ErrorCode {
+        enum_name: "BillingSubscriptionNotFound",
+        error_code: "billing_subscription_not_found",
+        status_code: 404,
+    },
+    ErrorCode {
+        enum_name: "BillingPriceNotFound",
+        error_code: "billing_price_not_found",
+        status_code: 404,
+    },
+    ErrorCode {
+        enum_name: "BillingInvoiceImmutable",
+        error_code: "billing_invoice_immutable",
+        status_code: 422,
+    },
 ];
 
 const ADMIN_UI_PAGES: &[AdminUiPage] = &[
-    AdminUiPage { route: "overview", label: "Overview", ui_endpoint: "/v1/admin/ui/overview", data_endpoint: "/v1/admin/overview", icon: "0xe1b1" },
-    AdminUiPage { route: "products", label: "Products", ui_endpoint: "/v1/admin/ui/products", data_endpoint: "/v1/admin/products", icon: "0xe349" },
-    AdminUiPage { route: "prices", label: "Prices", ui_endpoint: "/v1/admin/ui/prices", data_endpoint: "/v1/admin/prices", icon: "0xe263" },
-    AdminUiPage { route: "subscriptions", label: "Subscriptions", ui_endpoint: "/v1/admin/ui/subscriptions", data_endpoint: "/v1/admin/subscriptions", icon: "0xe8d2" },
-    AdminUiPage { route: "invoices", label: "Invoices", ui_endpoint: "/v1/admin/ui/invoices", data_endpoint: "/v1/admin/invoices", icon: "0xe8be" },
+    AdminUiPage {
+        route: "overview",
+        label: "Overview",
+        ui_endpoint: "/v1/admin/ui/overview",
+        data_endpoint: "/v1/admin/overview",
+        icon: "0xe1b1",
+    },
+    AdminUiPage {
+        route: "products",
+        label: "Products",
+        ui_endpoint: "/v1/admin/ui/products",
+        data_endpoint: "/v1/admin/products",
+        icon: "0xe349",
+    },
+    AdminUiPage {
+        route: "prices",
+        label: "Prices",
+        ui_endpoint: "/v1/admin/ui/prices",
+        data_endpoint: "/v1/admin/prices",
+        icon: "0xe263",
+    },
+    AdminUiPage {
+        route: "subscriptions",
+        label: "Subscriptions",
+        ui_endpoint: "/v1/admin/ui/subscriptions",
+        data_endpoint: "/v1/admin/subscriptions",
+        icon: "0xe8d2",
+    },
+    AdminUiPage {
+        route: "invoices",
+        label: "Invoices",
+        ui_endpoint: "/v1/admin/ui/invoices",
+        data_endpoint: "/v1/admin/invoices",
+        icon: "0xe8be",
+    },
 ];
 
 /// The scope-mirror Shield text.
@@ -110,7 +183,8 @@ const EVENT_TRIGGERS: &[sentin8::registration::EventTriggerDecl] = &[];
 const SQL_1_INIT: &str = include_str!("../sql/init.sql");
 
 fn openapi_spec() -> serde_json::Value {
-    serde_json::to_value(crate::openapi::BillingOpenApi::openapi()).unwrap_or(serde_json::Value::Null)
+    serde_json::to_value(crate::openapi::BillingOpenApi::openapi())
+        .unwrap_or(serde_json::Value::Null)
 }
 
 /// Print the registration JSON to stdout.
@@ -133,7 +207,11 @@ pub fn print(section: Option<String>) -> anyhow::Result<()> {
             service_flag: "billing",
             pages: ADMIN_UI_PAGES,
         }),
-        sql_migrations: vec![SqlMigration { version: 1, name: "init", sql: SQL_1_INIT }],
+        sql_migrations: vec![SqlMigration {
+            version: 1,
+            name: "init",
+            sql: SQL_1_INIT,
+        }],
         pg_roles: PG_ROLES,
         audit_findings: None,
         service_actions: None,

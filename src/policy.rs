@@ -7,7 +7,9 @@
 //! gate.
 
 #[allow(unused_imports)]
-pub use sentin8::shield::runtime::{check_policy, engine_for, policy_bus_client, request_ctx, spawn_hot_reload};
+pub use sentin8::shield::runtime::{
+    check_policy, engine_for, policy_bus_client, request_ctx, spawn_hot_reload,
+};
 pub use sentin8::shield::PolicyEngine as Engine;
 
 /// Step 5 for billing.

@@ -19,10 +19,7 @@ use crate::handlers;
 /// # Errors
 /// Returns the certificate-ensure or transport-build failure (the
 /// caller logs and degrades).
-async fn build_workload_http(
-    auth_issuer: &str,
-    workload: &str,
-) -> anyhow::Result<reqwest::Client> {
+async fn build_workload_http(auth_issuer: &str, workload: &str) -> anyhow::Result<reqwest::Client> {
     let cert = sentin8::auth::m2m::ensure_workload_certificate(
         auth_issuer,
         workload,
@@ -73,7 +70,9 @@ pub async fn build_state(core: sentin8::shell::ServiceCore) -> anyhow::Result<ha
     // Cross-service payments workload transport (invoice charges).
     match build_workload_http(&config.sentin8_auth_issuer, "bill8-billing-payments").await {
         Ok(http) => config.payments_http = Some(http),
-        Err(e) => tracing::warn!(error = %e, "billing-payments transport unavailable — invoice charges degraded"),
+        Err(e) => {
+            tracing::warn!(error = %e, "billing-payments transport unavailable — invoice charges degraded")
+        }
     }
 
     let policy_engine = core.admin.policy.clone();
@@ -96,7 +95,10 @@ pub async fn build_state(core: sentin8::shell::ServiceCore) -> anyhow::Result<ha
 pub fn routes(router: axum::Router<handlers::AppState>) -> axum::Router<handlers::AppState> {
     router
         .route("/v1/health", get(handlers::health))
-        .route("/v1/products", axum::routing::post(handlers::create_product))
+        .route(
+            "/v1/products",
+            axum::routing::post(handlers::create_product),
+        )
         .route(
             "/v1/prices",
             get(handlers::list_prices).post(handlers::create_price),
@@ -106,20 +108,59 @@ pub fn routes(router: axum::Router<handlers::AppState>) -> axum::Router<handlers
             get(handlers::list_subscriptions).post(handlers::create_subscription),
         )
         .route("/v1/subscriptions/{id}", get(handlers::get_subscription))
-        .route("/v1/usage-records", axum::routing::post(handlers::create_usage_record))
+        .route(
+            "/v1/usage-records",
+            axum::routing::post(handlers::create_usage_record),
+        )
         .route("/v1/invoices", get(handlers::list_invoices))
         // Invoice runs + previews (BIL-6/12/14) + the Cron proxy-back ticks.
-        .route("/v1/internal/invoices/run", axum::routing::post(handlers::invoice_runs::run_invoice_cycle))
-        .route("/v1/internal/dunning/retry", axum::routing::post(handlers::invoice_runs::dunning_retry))
-        .route("/v1/invoices/upcoming", get(handlers::invoice_runs::upcoming_invoice))
+        .route(
+            "/v1/internal/invoices/run",
+            axum::routing::post(handlers::invoice_runs::run_invoice_cycle),
+        )
+        .route(
+            "/v1/internal/dunning/retry",
+            axum::routing::post(handlers::invoice_runs::dunning_retry),
+        )
+        .route(
+            "/v1/invoices/upcoming",
+            get(handlers::invoice_runs::upcoming_invoice),
+        )
         // Billing richness (BIL-7/8/11/15/16).
-        .route("/v1/coupons", axum::routing::post(handlers::billing_richness::create_coupon))
-        .route("/v1/coupons/{code}/redeem", axum::routing::post(handlers::billing_richness::redeem_coupon))
-        .route("/v1/credits", axum::routing::post(handlers::billing_richness::create_credit))
-        .route("/v1/credit-notes", axum::routing::post(handlers::billing_richness::create_credit_note))
-        .route("/v1/credit-notes/{id}/void", axum::routing::post(handlers::billing_richness::void_credit_note))
-        .route("/v1/tax-rates", axum::routing::post(handlers::billing_richness::create_tax_rate))
-        .route("/v1/subscriptions/{id}/pause", axum::routing::post(handlers::billing_richness::pause_subscription))
-        .route("/v1/subscriptions/{id}/resume", axum::routing::post(handlers::billing_richness::resume_subscription))
-        .route("/v1/subscriptions/proration-quote", get(handlers::billing_richness::proration_quote))
+        .route(
+            "/v1/coupons",
+            axum::routing::post(handlers::billing_richness::create_coupon),
+        )
+        .route(
+            "/v1/coupons/{code}/redeem",
+            axum::routing::post(handlers::billing_richness::redeem_coupon),
+        )
+        .route(
+            "/v1/credits",
+            axum::routing::post(handlers::billing_richness::create_credit),
+        )
+        .route(
+            "/v1/credit-notes",
+            axum::routing::post(handlers::billing_richness::create_credit_note),
+        )
+        .route(
+            "/v1/credit-notes/{id}/void",
+            axum::routing::post(handlers::billing_richness::void_credit_note),
+        )
+        .route(
+            "/v1/tax-rates",
+            axum::routing::post(handlers::billing_richness::create_tax_rate),
+        )
+        .route(
+            "/v1/subscriptions/{id}/pause",
+            axum::routing::post(handlers::billing_richness::pause_subscription),
+        )
+        .route(
+            "/v1/subscriptions/{id}/resume",
+            axum::routing::post(handlers::billing_richness::resume_subscription),
+        )
+        .route(
+            "/v1/subscriptions/proration-quote",
+            get(handlers::billing_richness::proration_quote),
+        )
 }

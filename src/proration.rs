@@ -64,13 +64,16 @@ fn first_of(year: i32, month: i32) -> DateTime<Utc> {
     let base = DateTime::parse_from_rfc3339(&format!("{year:04}-01-01T00:00:00Z"))
         .expect("Jan 1 is always a valid date")
         .with_timezone(&Utc);
-    base.with_month(month as u32)
-        .unwrap_or(base)
+    base.with_month(month as u32).unwrap_or(base)
 }
 
 fn last_day_of(year: i32, month: i32) -> u32 {
     // The last day of month M in a year = the day before the 1st of M+1.
-    let (ny, nm) = if month == 12 { (year + 1, 1) } else { (year, month + 1) };
+    let (ny, nm) = if month == 12 {
+        (year + 1, 1)
+    } else {
+        (year, month + 1)
+    };
     (first_of(ny, nm) - Duration::days(1)).day()
 }
 
@@ -158,7 +161,7 @@ mod tests {
         let ten = Decimal::new(1000, 2);
         let credit = unused_credit(ten, 3, 2);
         assert_eq!(credit, Decimal::new(333, 2)); // 3.33
-        // credit for 2 unused = 6.66(6) → 6.67.
+                                                  // credit for 2 unused = 6.66(6) → 6.67.
         let credit = unused_credit(ten, 3, 1);
         assert_eq!(credit, Decimal::new(667, 2)); // 6.67
     }
@@ -175,10 +178,16 @@ mod tests {
             let credit = unused_credit(amount, cycle, used);
             let charge = remainder_charge(amount, cycle, cycle - used);
             // Same span, same price → within a cent of each other.
-            assert!((credit - charge).abs() <= Decimal::from(2), "used={used}: {credit} vs {charge}");
+            assert!(
+                (credit - charge).abs() <= Decimal::from(2),
+                "used={used}: {credit} vs {charge}"
+            );
             // Disjoint partition: used-span + remaining-span == amount.
             let used_charge = remainder_charge(amount, cycle, used);
-            assert!((used_charge + charge - amount).abs() <= Decimal::from(2), "used={used}: {used_charge} + {charge} vs {amount}");
+            assert!(
+                (used_charge + charge - amount).abs() <= Decimal::from(2),
+                "used={used}: {used_charge} + {charge} vs {amount}"
+            );
         }
     }
 
