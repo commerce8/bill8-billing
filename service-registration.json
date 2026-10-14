@@ -1,0 +1,20 @@
+{
+  "vertical": "bill8",
+  "services": [
+    {
+      "service_type": "bill8:billing",
+      "event_triggers": [
+        {
+          "event_type": "bill8:payments:charge:succeeded",
+          "consumer_group": "bill8:billing:invoice",
+          "action": "mark_invoice_paid"
+        },
+        {
+          "event_type": "sentin8:sys:service:updated",
+          "consumer_group": "bill8:billing:envinit",
+          "action": "seed_default_billing_state"
+        }
+      ]
+    }
+  ]
+}
