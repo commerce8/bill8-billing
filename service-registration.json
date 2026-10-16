@@ -14,7 +14,11 @@
           "consumer_group": "bill8:billing:envinit",
           "action": "seed_default_billing_state"
         }
-      ]
+      ],
+      "telemetry_property": {
+        "slug": "billing",
+        "name": "Bill8:Billing Telemetry"
+      }
     }
   ]
 }
