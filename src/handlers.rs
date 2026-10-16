@@ -74,11 +74,18 @@ pub async fn emit_event(
 }
 
 /// Health probe payload.
+///
+/// Carries the binary's build identity (`version`/`build`, BUILDID-1) so
+/// captain's monitor populates `make status`'s VERSION column — the
+/// consuming BINARY's identity, never a shared crate's (env!(
+/// CARGO_PKG_VERSION) here reported only the bare crate version with no
+/// build hash and no profile marker).
 pub async fn health() -> axum::Json<serde_json::Value> {
     axum::Json(serde_json::json!({
         "status": "ok",
         "service": "billing",
-        "version": env!("CARGO_PKG_VERSION")
+        "version": sentin8::build_info::id(),
+        "build": sentin8::build_info::build_hash()
     }))
 }
 
