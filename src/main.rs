@@ -5,9 +5,6 @@
 
 //! Bill8:Billing binary — boots on the platform `sentin8::shell`.
 
-#[global_allocator]
-static GLOBAL_ALLOCATOR: mimalloc::MiMalloc = mimalloc::MiMalloc;
-
 #[allow(dead_code)]
 mod auth;
 #[allow(dead_code)]
