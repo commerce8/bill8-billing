@@ -12,6 +12,7 @@ use crate::handlers;
 /// The billing service's OpenAPI document.
 #[derive(OpenApi)]
 #[openapi(paths(
+    handlers::health,
     handlers::create_product,
     handlers::create_price,
     handlers::list_prices,

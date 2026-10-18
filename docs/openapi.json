@@ -153,6 +153,27 @@
         ]
       }
     },
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Health probe payload.",
+        "description": "Carries the binary's build identity (`version`/`build`, BUILDID-1) so\ncaptain's monitor populates `make status`'s VERSION column — the\nconsuming BINARY's identity, never a shared crate's (env!(\nCARGO_PKG_VERSION) here reported only the bare crate version with no\nbuild hash and no profile marker).",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Liveness (version, build)",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/v1/internal/dunning/retry": {
       "post": {
         "tags": [

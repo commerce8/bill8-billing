@@ -1,0 +1,966 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "bill8-billing",
+    "description": "Sentin8 Bill8:Billing — subscriptions, invoices, proration, metering.",
+    "license": {
+      "name": "MIT OR Apache-2.0",
+      "identifier": "MIT OR Apache-2.0"
+    },
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/v1/coupons": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/coupons` — create a coupon (redemption-limit bounded).",
+        "operationId": "create_coupon",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Coupon created"
+          },
+          "403": {
+            "description": "Missing bill8:billing:coupons:write"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:coupons:write": []
+          }
+        ]
+      }
+    },
+    "/v1/coupons/{code}/redeem": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/coupons/{code}/redeem` — redeem a coupon (row-lock bounded:\nconcurrent redemptions never exceed the limit; expired coupons and\nexhausted limits are rejected).",
+        "operationId": "redeem_coupon",
+        "responses": {
+          "200": {
+            "description": "Coupon redeemed"
+          },
+          "404": {
+            "description": "Coupon not found"
+          },
+          "409": {
+            "description": "Limit exhausted or expired"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:coupons:write": []
+          }
+        ]
+      }
+    },
+    "/v1/credit-notes": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/credit-notes` — issue an invoice-level adjustment, bounded\nby the invoice's paid amount (row-lock serialized — credit notes\nadjust invoices; refunds adjust charges).",
+        "operationId": "create_credit_note",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Credit note issued"
+          },
+          "404": {
+            "description": "Invoice not found"
+          },
+          "422": {
+            "description": "Over-credit — nothing written"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:credit-notes:write": []
+          }
+        ]
+      }
+    },
+    "/v1/credit-notes/{id}/void": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/credit-notes/{id}/void` — void a credit note (terminal).",
+        "operationId": "void_credit_note",
+        "responses": {
+          "200": {
+            "description": "Credit note voided"
+          },
+          "404": {
+            "description": "Credit note not found"
+          },
+          "409": {
+            "description": "Already void"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:credit-notes:write": []
+          }
+        ]
+      }
+    },
+    "/v1/credits": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/credits` — grant prepaid value to a customer.",
+        "operationId": "create_credit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Credit granted"
+          },
+          "403": {
+            "description": "Missing bill8:billing:credits:write"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:credits:write": []
+          }
+        ]
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Health probe payload.",
+        "description": "Carries the binary's build identity (`version`/`build`, BUILDID-1) so\ncaptain's monitor populates `make status`'s VERSION column — the\nconsuming BINARY's identity, never a shared crate's (env!(\nCARGO_PKG_VERSION) here reported only the bare crate version with no\nbuild hash and no profile marker).",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "Liveness (version, build)",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/internal/dunning/retry": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/internal/dunning/retry` — the dunning-ladder tick (BIL-12):\nre-charge past-due invoices on the configured schedule. The ladder\nis DATA (`dunning_configs` rows): count + backoff per env; after the\nfinal failure the subscription cancels (guarded terminal).",
+        "operationId": "dunning_retry",
+        "responses": {
+          "200": {
+            "description": "Dunning tick processed"
+          }
+        },
+        "security": [
+          {
+            "sentin8:cron:write": []
+          }
+        ]
+      }
+    },
+    "/v1/internal/invoices/run": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/internal/invoices/run` — the Cron proxy-back tick: find\nsubscriptions due this cycle, aggregate usage, finalize invoices,\ncharge via the payments public API. Idempotent per\n(subscription, cycle): a subscription with an open/paid/retrying\ninvoice covering its current period is skipped.",
+        "operationId": "run_invoice_cycle",
+        "responses": {
+          "200": {
+            "description": "Invoice run processed"
+          }
+        },
+        "security": [
+          {
+            "sentin8:cron:write": []
+          }
+        ]
+      }
+    },
+    "/v1/invoices": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`GET /v1/invoices` — list invoices.",
+        "operationId": "list_invoices",
+        "responses": {
+          "200": {
+            "description": "List of invoices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Invoice"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bill8:billing:invoices:read"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:invoices:read": []
+          }
+        ]
+      }
+    },
+    "/v1/invoices/upcoming": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`GET /v1/invoices/upcoming` — the read-only upcoming-invoice preview\n(BIL-14): projects the next cycle's invoice for a subscription with\nZERO writes.",
+        "operationId": "upcoming_invoice",
+        "parameters": [
+          {
+            "name": "subscription_id",
+            "in": "query",
+            "description": "The subscription to preview",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The projected upcoming invoice"
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:invoices:read": []
+          }
+        ]
+      }
+    },
+    "/v1/prices": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`GET /v1/prices` — list prices.",
+        "operationId": "list_prices",
+        "responses": {
+          "200": {
+            "description": "List of prices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Price"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bill8:billing:prices:read"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:prices:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/prices` — create a price (immutable once referenced).",
+        "operationId": "create_price",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Price"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Price created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Price"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bill8:billing:prices:write"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:prices:write": []
+          }
+        ]
+      }
+    },
+    "/v1/products": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/products` — create a product.",
+        "operationId": "create_product",
+        "responses": {
+          "200": {
+            "description": "Product created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bill8:billing:products:write"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:products:write": []
+          }
+        ]
+      }
+    },
+    "/v1/subscriptions": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`GET /v1/subscriptions` — list subscriptions.",
+        "operationId": "list_subscriptions",
+        "responses": {
+          "200": {
+            "description": "List of subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Subscription"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bill8:billing:subscriptions:read"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:subscriptions:read": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/subscriptions` — subscribe a customer to a price (with\ntrial support and proration-consistent cycle math).",
+        "operationId": "create_subscription",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bill8:billing:subscriptions:write"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:subscriptions:write": []
+          }
+        ]
+      }
+    },
+    "/v1/subscriptions/proration-quote": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`GET /v1/subscriptions/proration-quote` — quote a hypothetical plan\nchange (read-only, ZERO writes; the same proration math the real\nchange applies).",
+        "operationId": "proration_quote",
+        "parameters": [
+          {
+            "name": "subscription_id",
+            "in": "query",
+            "description": "The subscription",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "new_unit_amount",
+            "in": "query",
+            "description": "The new price's unit amount",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The proration quote"
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:subscriptions:read": []
+          }
+        ]
+      }
+    },
+    "/v1/subscriptions/{id}": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`GET /v1/subscriptions/{id}` — read one subscription.",
+        "operationId": "get_subscription",
+        "responses": {
+          "200": {
+            "description": "The subscription",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Subscription"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Subscription not found"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:subscriptions:read": []
+          }
+        ]
+      }
+    },
+    "/v1/subscriptions/{id}/pause": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/subscriptions/{id}/pause` — pause billing (no invoices\ngenerated while paused; terminal-state guard applies).",
+        "operationId": "pause_subscription",
+        "responses": {
+          "200": {
+            "description": "Subscription paused"
+          },
+          "409": {
+            "description": "Subscription not pausable"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:subscriptions:write": []
+          }
+        ]
+      }
+    },
+    "/v1/subscriptions/{id}/resume": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/subscriptions/{id}/resume` — resume with proration against\nthe remaining cycle (cent-exact, BIL-4 math).",
+        "operationId": "resume_subscription",
+        "responses": {
+          "200": {
+            "description": "Subscription resumed (prorated)"
+          },
+          "409": {
+            "description": "Subscription not paused"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:subscriptions:write": []
+          }
+        ]
+      }
+    },
+    "/v1/tax-rates": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/tax-rates` — configure a jurisdiction rate.",
+        "operationId": "create_tax_rate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tax rate saved"
+          },
+          "403": {
+            "description": "Missing bill8:billing:tax-rates:write"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:tax-rates:write": []
+          }
+        ]
+      }
+    },
+    "/v1/usage-records": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "`POST /v1/usage-records` — meter a usage event (deterministic\naggregation at invoice time; duplicate keys counted once).",
+        "operationId": "create_usage_record",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUsageRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Usage recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageRecord"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing bill8:billing:usage-records:write"
+          }
+        },
+        "security": [
+          {
+            "bill8:billing:usage-records:write": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateSubscriptionRequest": {
+        "type": "object",
+        "description": "Request body for `POST /v1/subscriptions`.",
+        "required": [
+          "customer_id",
+          "price_id"
+        ],
+        "properties": {
+          "billing_cycle_anchor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Billing-cycle anchor."
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Subscribing customer."
+          },
+          "idempotency_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Caller-supplied idempotency key."
+          },
+          "price_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Price to subscribe to."
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Quantity."
+          },
+          "trial_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Trial end (when starting with a trial)."
+          }
+        }
+      },
+      "CreateUsageRecordRequest": {
+        "type": "object",
+        "description": "Request body for `POST /v1/usage-records`.",
+        "required": [
+          "subscription_item_id",
+          "quantity"
+        ],
+        "properties": {
+          "idempotency_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Caller-supplied idempotency key."
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Quantity consumed."
+          },
+          "subscription_item_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Owning subscription item."
+          }
+        }
+      },
+      "Invoice": {
+        "type": "object",
+        "description": "A generated bill.",
+        "required": [
+          "id",
+          "env_id",
+          "customer_id",
+          "amount_due",
+          "amount_paid",
+          "currency",
+          "status",
+          "period_start",
+          "period_end",
+          "created_at"
+        ],
+        "properties": {
+          "amount_due": {
+            "type": "string",
+            "description": "Amount due as a JSON string on the wire."
+          },
+          "amount_paid": {
+            "type": "string",
+            "description": "Amount paid as a JSON string on the wire."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code."
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Billed customer."
+          },
+          "env_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Owning tenant environment."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Invoice id."
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Period end."
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Period start."
+          },
+          "status": {
+            "type": "string",
+            "description": "Lifecycle state (`draft` / `open` / `paid` / `void` / `retrying`)."
+          },
+          "subscription_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Billed subscription (when generated from one)."
+          }
+        }
+      },
+      "Price": {
+        "type": "object",
+        "description": "A recurring or one-off price point.",
+        "required": [
+          "id",
+          "product_id",
+          "pricing_model",
+          "unit_amount",
+          "currency",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Price id."
+          },
+          "interval": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Recurring interval (`day` / `week` / `month` / `year`, or `null`\nfor one-off)."
+          },
+          "pricing_model": {
+            "type": "string",
+            "description": "Pricing model for metered prices (`flat` / `tiered` / `volume` /\n`packaged`)."
+          },
+          "product_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Owning product."
+          },
+          "unit_amount": {
+            "type": "string",
+            "description": "Unit amount as a JSON string on the wire."
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "description": "A catalog product.",
+        "required": [
+          "id",
+          "env_id",
+          "name",
+          "status",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "env_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Owning tenant environment."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Product id."
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name."
+          },
+          "status": {
+            "type": "string",
+            "description": "Lifecycle state (`active` / `archived`)."
+          }
+        }
+      },
+      "Subscription": {
+        "type": "object",
+        "description": "A customer's plan instance.",
+        "required": [
+          "id",
+          "env_id",
+          "customer_id",
+          "status",
+          "current_period_end",
+          "created_at"
+        ],
+        "properties": {
+          "billing_cycle_anchor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Billing-cycle anchor (calendar alignment or custom date)."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "current_period_end": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Current period end."
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Subscribing customer."
+          },
+          "env_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Owning tenant environment."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Subscription id."
+          },
+          "status": {
+            "type": "string",
+            "description": "Lifecycle state (`incomplete` / `trialing` / `active` /\n`past_due` / `paused` / `canceled`)."
+          },
+          "trial_end": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Trial end (when the subscription starts with a trial)."
+          }
+        }
+      },
+      "UsageRecord": {
+        "type": "object",
+        "description": "A metered consumption event.",
+        "required": [
+          "id",
+          "subscription_item_id",
+          "quantity",
+          "recorded_at",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp."
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Record id."
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Quantity consumed."
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Event timestamp (cutoff lands late events on the next cycle)."
+          },
+          "subscription_item_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Owning subscription item."
+          }
+        }
+      }
+    }
+  }
+}
