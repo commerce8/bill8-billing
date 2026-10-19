@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 // SPDX-License-Identifier: Apache-2.0
 
-//! Sentin8:Bus consumers — the event-driven wiring (billing DESIGN.md §7).
+//! Sentin8:Bus consumers - the event-driven wiring (billing DESIGN.md §7).
 //!
 //! Each loop follows the platform SSE pattern: connect to the family
 //! stream with a stable consumer group, dispatch matched events, ACK,
@@ -52,7 +52,7 @@ fn parse_envelope(msg: &serde_json::Value) -> Option<Envelope> {
 
 /// Spawn a consumer loop for one family + group. The `dispatch` closure
 /// captures everything it needs (the state clone, the reaction call)
-/// and runs inline on the consumer task — each event's work is bounded
+/// and runs inline on the consumer task - each event's work is bounded
 /// (retry budgets live in Bus, not the consumer).
 pub fn spawn_family_consumer<F, Fut>(
     bus_client: sentin8::bus::client::BusClient,
@@ -94,10 +94,10 @@ pub fn spawn_family_consumer<F, Fut>(
                             }
                         }
                     }
-                    tracing::info!(family, "bus SSE disconnected — reconnecting");
+                    tracing::info!(family, "bus SSE disconnected - reconnecting");
                 }
                 Err(e) => {
-                    tracing::warn!(error = %e, family, "bus SSE consume failed — reconnecting");
+                    tracing::warn!(error = %e, family, "bus SSE consume failed - reconnecting");
                 }
             }
             tokio::time::sleep(RECONNECT_DELAY).await;
@@ -108,7 +108,7 @@ pub fn spawn_family_consumer<F, Fut>(
 /// Spawn all the billing service's consumer loops (called once from
 /// `build_state`):
 ///
-/// - `payments` family, group `bill8:billing:invoice` — marks
+/// - `payments` family, group `bill8:billing:invoice` - marks
 ///   invoices paid when their charges succeed (BIL-6; recovery restores
 ///   the subscription to `active`).
 pub fn spawn_consumers(state: AppState) {

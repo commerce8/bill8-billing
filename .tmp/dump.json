@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "bill8-billing",
-    "description": "Sentin8 Bill8:Billing — subscriptions, invoices, proration, metering.",
+    "description": "Sentin8 Bill8:Billing - subscriptions, invoices, proration, metering.",
     "license": {
       "name": "MIT OR Apache-2.0",
       "identifier": "MIT OR Apache-2.0"
@@ -15,7 +15,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/coupons` — create a coupon (redemption-limit bounded).",
+        "summary": "`POST /v1/coupons` - create a coupon (redemption-limit bounded).",
         "operationId": "create_coupon",
         "requestBody": {
           "content": {
@@ -45,7 +45,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/coupons/{code}/redeem` — redeem a coupon (row-lock bounded:\nconcurrent redemptions never exceed the limit; expired coupons and\nexhausted limits are rejected).",
+        "summary": "`POST /v1/coupons/{code}/redeem` - redeem a coupon (row-lock bounded:\nconcurrent redemptions never exceed the limit; expired coupons and\nexhausted limits are rejected).",
         "operationId": "redeem_coupon",
         "responses": {
           "200": {
@@ -70,7 +70,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/credit-notes` — issue an invoice-level adjustment, bounded\nby the invoice's paid amount (row-lock serialized — credit notes\nadjust invoices; refunds adjust charges).",
+        "summary": "`POST /v1/credit-notes` - issue an invoice-level adjustment, bounded\nby the invoice's paid amount (row-lock serialized - credit notes\nadjust invoices; refunds adjust charges).",
         "operationId": "create_credit_note",
         "requestBody": {
           "content": {
@@ -88,7 +88,7 @@
             "description": "Invoice not found"
           },
           "422": {
-            "description": "Over-credit — nothing written"
+            "description": "Over-credit - nothing written"
           }
         },
         "security": [
@@ -103,7 +103,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/credit-notes/{id}/void` — void a credit note (terminal).",
+        "summary": "`POST /v1/credit-notes/{id}/void` - void a credit note (terminal).",
         "operationId": "void_credit_note",
         "responses": {
           "200": {
@@ -128,7 +128,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/credits` — grant prepaid value to a customer.",
+        "summary": "`POST /v1/credits` - grant prepaid value to a customer.",
         "operationId": "create_credit",
         "requestBody": {
           "content": {
@@ -159,7 +159,7 @@
           "meta"
         ],
         "summary": "Health probe payload.",
-        "description": "Carries the binary's build identity (`version`/`build`, BUILDID-1) so\ncaptain's monitor populates `make status`'s VERSION column — the\nconsuming BINARY's identity, never a shared crate's (env!(\nCARGO_PKG_VERSION) here reported only the bare crate version with no\nbuild hash and no profile marker).",
+        "description": "Carries the binary's build identity (`version`/`build`, BUILDID-1) so\ncaptain's monitor populates `make status`'s VERSION column - the\nconsuming BINARY's identity, never a shared crate's (env!(\nCARGO_PKG_VERSION) here reported only the bare crate version with no\nbuild hash and no profile marker).",
         "operationId": "health",
         "responses": {
           "200": {
@@ -179,7 +179,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/internal/dunning/retry` — the dunning-ladder tick (BIL-12):\nre-charge past-due invoices on the configured schedule. The ladder\nis DATA (`dunning_configs` rows): count + backoff per env; after the\nfinal failure the subscription cancels (guarded terminal).",
+        "summary": "`POST /v1/internal/dunning/retry` - the dunning-ladder tick (BIL-12):\nre-charge past-due invoices on the configured schedule. The ladder\nis DATA (`dunning_configs` rows): count + backoff per env; after the\nfinal failure the subscription cancels (guarded terminal).",
         "operationId": "dunning_retry",
         "responses": {
           "200": {
@@ -198,7 +198,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/internal/invoices/run` — the Cron proxy-back tick: find\nsubscriptions due this cycle, aggregate usage, finalize invoices,\ncharge via the payments public API. Idempotent per\n(subscription, cycle): a subscription with an open/paid/retrying\ninvoice covering its current period is skipped.",
+        "summary": "`POST /v1/internal/invoices/run` - the Cron proxy-back tick: find\nsubscriptions due this cycle, aggregate usage, finalize invoices,\ncharge via the payments public API. Idempotent per\n(subscription, cycle): a subscription with an open/paid/retrying\ninvoice covering its current period is skipped.",
         "operationId": "run_invoice_cycle",
         "responses": {
           "200": {
@@ -217,7 +217,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`GET /v1/invoices` — list invoices.",
+        "summary": "`GET /v1/invoices` - list invoices.",
         "operationId": "list_invoices",
         "responses": {
           "200": {
@@ -249,7 +249,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`GET /v1/invoices/upcoming` — the read-only upcoming-invoice preview\n(BIL-14): projects the next cycle's invoice for a subscription with\nZERO writes.",
+        "summary": "`GET /v1/invoices/upcoming` - the read-only upcoming-invoice preview\n(BIL-14): projects the next cycle's invoice for a subscription with\nZERO writes.",
         "operationId": "upcoming_invoice",
         "parameters": [
           {
@@ -283,7 +283,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`GET /v1/prices` — list prices.",
+        "summary": "`GET /v1/prices` - list prices.",
         "operationId": "list_prices",
         "responses": {
           "200": {
@@ -313,7 +313,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/prices` — create a price (immutable once referenced).",
+        "summary": "`POST /v1/prices` - create a price (immutable once referenced).",
         "operationId": "create_price",
         "requestBody": {
           "content": {
@@ -352,7 +352,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/products` — create a product.",
+        "summary": "`POST /v1/products` - create a product.",
         "operationId": "create_product",
         "responses": {
           "200": {
@@ -381,7 +381,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`GET /v1/subscriptions` — list subscriptions.",
+        "summary": "`GET /v1/subscriptions` - list subscriptions.",
         "operationId": "list_subscriptions",
         "responses": {
           "200": {
@@ -411,7 +411,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/subscriptions` — subscribe a customer to a price (with\ntrial support and proration-consistent cycle math).",
+        "summary": "`POST /v1/subscriptions` - subscribe a customer to a price (with\ntrial support and proration-consistent cycle math).",
         "operationId": "create_subscription",
         "requestBody": {
           "content": {
@@ -450,7 +450,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`GET /v1/subscriptions/proration-quote` — quote a hypothetical plan\nchange (read-only, ZERO writes; the same proration math the real\nchange applies).",
+        "summary": "`GET /v1/subscriptions/proration-quote` - quote a hypothetical plan\nchange (read-only, ZERO writes; the same proration math the real\nchange applies).",
         "operationId": "proration_quote",
         "parameters": [
           {
@@ -493,7 +493,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`GET /v1/subscriptions/{id}` — read one subscription.",
+        "summary": "`GET /v1/subscriptions/{id}` - read one subscription.",
         "operationId": "get_subscription",
         "responses": {
           "200": {
@@ -522,7 +522,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/subscriptions/{id}/pause` — pause billing (no invoices\ngenerated while paused; terminal-state guard applies).",
+        "summary": "`POST /v1/subscriptions/{id}/pause` - pause billing (no invoices\ngenerated while paused; terminal-state guard applies).",
         "operationId": "pause_subscription",
         "responses": {
           "200": {
@@ -544,7 +544,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/subscriptions/{id}/resume` — resume with proration against\nthe remaining cycle (cent-exact, BIL-4 math).",
+        "summary": "`POST /v1/subscriptions/{id}/resume` - resume with proration against\nthe remaining cycle (cent-exact, BIL-4 math).",
         "operationId": "resume_subscription",
         "responses": {
           "200": {
@@ -566,7 +566,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/tax-rates` — configure a jurisdiction rate.",
+        "summary": "`POST /v1/tax-rates` - configure a jurisdiction rate.",
         "operationId": "create_tax_rate",
         "requestBody": {
           "content": {
@@ -596,7 +596,7 @@
         "tags": [
           "billing"
         ],
-        "summary": "`POST /v1/usage-records` — meter a usage event (deterministic\naggregation at invoice time; duplicate keys counted once).",
+        "summary": "`POST /v1/usage-records` - meter a usage event (deterministic\naggregation at invoice time; duplicate keys counted once).",
         "operationId": "create_usage_record",
         "requestBody": {
           "content": {

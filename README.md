@@ -1,4 +1,4 @@
-# Bill8:Billing — Recurring Billing
+# Bill8:Billing - Recurring Billing
 
 Products, prices, subscriptions, invoices, usage records, coupons, and
 credits.
@@ -31,19 +31,19 @@ graph TD
 
 ## 4. Key Traits and Data Structures
 
-- `Product` / `Price` — the catalog; a price has a recurring interval
+- `Product` / `Price` - the catalog; a price has a recurring interval
   (`day` / `week` / `month` / `year`) or is one-off, a unit amount, and
   a pricing model (`flat`, `tiered`, `volume`, `packaged`) for usage.
-- `Subscription` — a customer's plan instance with a status
+- `Subscription` - a customer's plan instance with a status
   (`incomplete` / `trialing` / `active` / `past_due` / `paused` /
   `canceled`), a trial window, and a billing-cycle anchor.
-- `SubscriptionItem` — a line on a subscription with a quantity.
-- `Invoice` — a generated bill with a status (`draft` → `open` →
+- `SubscriptionItem` - a line on a subscription with a quantity.
+- `Invoice` - a generated bill with a status (`draft` → `open` →
   `paid` / `void`, with `retrying` on the dunning ladder).
-- `UsageRecord` — a metered consumption event aggregated onto invoices.
-- `Coupon` / `Credit` / `CreditNote` — discounts, prepaid value, and
+- `UsageRecord` - a metered consumption event aggregated onto invoices.
+- `Coupon` / `Credit` / `CreditNote` - discounts, prepaid value, and
   invoice-level adjustments.
-- `TaxRate` — jurisdiction rates applied as explicit tax lines at
+- `TaxRate` - jurisdiction rates applied as explicit tax lines at
   finalize.
 
 ## 5. Rationale, Trade-offs, and Alternatives
@@ -53,9 +53,9 @@ graph TD
   one aggregation, not one price computation each.
 - **Proration on change** over back-dating: a plan change prorates
   against the remaining cycle, keeping invoices monotonic.
-- **Dunning as data** — the retry ladder is a per-env configuration, not
+- **Dunning as data** - the retry ladder is a per-env configuration, not
   code; recovery and cancellation are its deterministic outcomes.
-- **Credit notes vs. refunds** — invoice-level corrections and
+- **Credit notes vs. refunds** - invoice-level corrections and
   charge-level corrections are separate records with separate bounds;
   conflating them erodes the audit trail.
 - **Delegating invoice-run scheduling to Sentin8:Cron** over an embedded

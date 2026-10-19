@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 // SPDX-License-Identifier: Apache-2.0
 
-//! Billing HTTP handlers — products, prices, subscriptions, invoices,
+//! Billing HTTP handlers - products, prices, subscriptions, invoices,
 //! usage records. Invoices are immutable once finalized; usage
 //! aggregation is a deterministic SUM at invoice time.
 
@@ -36,7 +36,7 @@ pub struct AppState {
     pub pool: sqlx::PgPool,
     /// M2M-backed Bus client.
     pub bus_client: sentin8::bus::client::BusClient,
-    /// Shield policy engine — step 5 is the ONLY gate.
+    /// Shield policy engine - step 5 is the ONLY gate.
     pub policy: Arc<Engine>,
 }
 // (The billing handler modules are declared above; this file holds the
@@ -85,7 +85,7 @@ pub async fn emit_event(
 /// Health probe payload.
 ///
 /// Carries the binary's build identity (`version`/`build`, BUILDID-1) so
-/// captain's monitor populates `make status`'s VERSION column — the
+/// captain's monitor populates `make status`'s VERSION column - the
 /// consuming BINARY's identity, never a shared crate's (env!(
 /// CARGO_PKG_VERSION) here reported only the bare crate version with no
 /// build hash and no profile marker).
@@ -98,7 +98,7 @@ pub async fn health() -> axum::Json<serde_json::Value> {
     }))
 }
 
-/// `POST /v1/products` — create a product.
+/// `POST /v1/products` - create a product.
 #[utoipa::path(
     post,
     path = "/v1/products",
@@ -154,7 +154,7 @@ pub async fn create_product(
     }))
 }
 
-/// `POST /v1/prices` — create a price (immutable once referenced).
+/// `POST /v1/prices` - create a price (immutable once referenced).
 #[utoipa::path(
     post,
     path = "/v1/prices",
@@ -229,7 +229,7 @@ pub async fn create_price(
     }))
 }
 
-/// `GET /v1/prices` — list prices.
+/// `GET /v1/prices` - list prices.
 #[utoipa::path(
     get,
     path = "/v1/prices",
@@ -280,7 +280,7 @@ pub async fn list_prices(
     ))
 }
 
-/// `POST /v1/subscriptions` — subscribe a customer to a price (with
+/// `POST /v1/subscriptions` - subscribe a customer to a price (with
 /// trial support and proration-consistent cycle math).
 #[utoipa::path(
     post,
@@ -402,7 +402,7 @@ pub async fn create_subscription(
     Ok(Json(sub))
 }
 
-/// `GET /v1/subscriptions` — list subscriptions.
+/// `GET /v1/subscriptions` - list subscriptions.
 #[utoipa::path(
     get,
     path = "/v1/subscriptions",
@@ -441,7 +441,7 @@ pub async fn list_subscriptions(
     Ok(Json(rows.iter().map(row_to_subscription).collect()))
 }
 
-/// `GET /v1/subscriptions/{id}` — read one subscription.
+/// `GET /v1/subscriptions/{id}` - read one subscription.
 #[utoipa::path(
     get,
     path = "/v1/subscriptions/{id}",
@@ -468,7 +468,7 @@ pub async fn get_subscription(
     get_subscription_row(&state, a.env_id(), id).await
 }
 
-/// `POST /v1/usage-records` — meter a usage event (deterministic
+/// `POST /v1/usage-records` - meter a usage event (deterministic
 /// aggregation at invoice time; duplicate keys counted once).
 #[utoipa::path(
     post,
@@ -534,7 +534,7 @@ pub async fn create_usage_record(
     Ok(Json(row_to_usage(&row)))
 }
 
-/// `GET /v1/invoices` — list invoices.
+/// `GET /v1/invoices` - list invoices.
 #[utoipa::path(
     get,
     path = "/v1/invoices",

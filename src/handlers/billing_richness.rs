@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 // SPDX-License-Identifier: Apache-2.0
 
-//! Billing richness handlers — coupons (BIL-7), credits (BIL-8),
+//! Billing richness handlers - coupons (BIL-7), credits (BIL-8),
 //! credit notes (BIL-15), tax rates (BIL-16), pause/resume (BIL-11),
 //! and the plan-change proration quote (BIL-14). Plus the
 //! `charge:succeeded` consumer (BIL-6) marking invoices paid.
@@ -21,7 +21,7 @@ use crate::proration;
 
 // ── Coupons (BIL-7) ─────────────────────────────────────────────────────
 
-/// `POST /v1/coupons` — create a coupon (redemption-limit bounded).
+/// `POST /v1/coupons` - create a coupon (redemption-limit bounded).
 #[utoipa::path(
     post,
     path = "/v1/coupons",
@@ -82,7 +82,7 @@ pub async fn create_coupon(
     Ok(Json(serde_json::json!({ "coupon_id": id })))
 }
 
-/// `POST /v1/coupons/{code}/redeem` — redeem a coupon (row-lock bounded:
+/// `POST /v1/coupons/{code}/redeem` - redeem a coupon (row-lock bounded:
 /// concurrent redemptions never exceed the limit; expired coupons and
 /// exhausted limits are rejected).
 #[utoipa::path(
@@ -115,7 +115,7 @@ pub async fn redeem_coupon(
         .await
         .map_err(err_db)?;
 
-    // Row-lock the coupon — the limit check + increment are atomic.
+    // Row-lock the coupon - the limit check + increment are atomic.
     let coupon = sqlx::query(
         "SELECT id, redemption_limit, redeemed, expires_at FROM billing.coupons WHERE code = $1 FOR UPDATE",
     )
@@ -155,7 +155,7 @@ pub async fn redeem_coupon(
 
 // ── Credits (BIL-8) ─────────────────────────────────────────────────────
 
-/// `POST /v1/credits` — grant prepaid value to a customer.
+/// `POST /v1/credits` - grant prepaid value to a customer.
 #[utoipa::path(
     post,
     path = "/v1/credits",
@@ -220,8 +220,8 @@ pub async fn create_credit(
 
 // ── Credit notes (BIL-15) ────────────────────────────────────────────────
 
-/// `POST /v1/credit-notes` — issue an invoice-level adjustment, bounded
-/// by the invoice's paid amount (row-lock serialized — credit notes
+/// `POST /v1/credit-notes` - issue an invoice-level adjustment, bounded
+/// by the invoice's paid amount (row-lock serialized - credit notes
 /// adjust invoices; refunds adjust charges).
 #[utoipa::path(
     post,
@@ -229,7 +229,7 @@ pub async fn create_credit(
     request_body = serde_json::Value,
     responses(
         (status = 200, description = "Credit note issued"),
-        (status = 422, description = "Over-credit — nothing written"),
+        (status = 422, description = "Over-credit - nothing written"),
         (status = 404, description = "Invoice not found"),
     ),
     security(("bill8:billing:credit-notes:write" = [])),
@@ -270,7 +270,7 @@ pub async fn create_credit_note(
         .await
         .map_err(err_db)?;
 
-    // Row-lock the invoice — the paid-amount bound is computed atomically.
+    // Row-lock the invoice - the paid-amount bound is computed atomically.
     let invoice = sqlx::query("SELECT amount_paid FROM billing.invoices WHERE id = $1 FOR UPDATE")
         .bind(invoice_id)
         .fetch_optional(&mut *conn)
@@ -314,7 +314,7 @@ pub async fn create_credit_note(
     ))
 }
 
-/// `POST /v1/credit-notes/{id}/void` — void a credit note (terminal).
+/// `POST /v1/credit-notes/{id}/void` - void a credit note (terminal).
 #[utoipa::path(
     post,
     path = "/v1/credit-notes/{id}/void",
@@ -362,7 +362,7 @@ pub async fn void_credit_note(
 
 // ── Tax rates (BIL-16) ───────────────────────────────────────────────────
 
-/// `POST /v1/tax-rates` — configure a jurisdiction rate.
+/// `POST /v1/tax-rates` - configure a jurisdiction rate.
 #[utoipa::path(
     post,
     path = "/v1/tax-rates",
@@ -419,7 +419,7 @@ pub async fn create_tax_rate(
 
 // ── Pause / resume (BIL-11) ──────────────────────────────────────────────
 
-/// `POST /v1/subscriptions/{id}/pause` — pause billing (no invoices
+/// `POST /v1/subscriptions/{id}/pause` - pause billing (no invoices
 /// generated while paused; terminal-state guard applies).
 #[utoipa::path(
     post,
@@ -475,7 +475,7 @@ pub async fn pause_subscription(
     Ok(Json(serde_json::json!({ "status": "paused" })))
 }
 
-/// `POST /v1/subscriptions/{id}/resume` — resume with proration against
+/// `POST /v1/subscriptions/{id}/resume` - resume with proration against
 /// the remaining cycle (cent-exact, BIL-4 math).
 #[utoipa::path(
     post,
@@ -522,7 +522,7 @@ pub async fn resume_subscription(
         .unwrap_or(chrono::Utc::now());
     let period_end: chrono::DateTime<chrono::Utc> = sub.get("current_period_end");
 
-    // The resume charge covers the remaining days of the cycle — the
+    // The resume charge covers the remaining days of the cycle - the
     // proration quote is returned for the caller to invoice (the next
     // invoice run applies it via the standard cycle lines).
     let remaining = (period_end - chrono::Utc::now()).num_days().max(0);
@@ -561,7 +561,7 @@ pub struct ProrationQuoteQuery {
     pub new_unit_amount: String,
 }
 
-/// `GET /v1/subscriptions/proration-quote` — quote a hypothetical plan
+/// `GET /v1/subscriptions/proration-quote` - quote a hypothetical plan
 /// change (read-only, ZERO writes; the same proration math the real
 /// change applies).
 #[utoipa::path(
@@ -649,7 +649,7 @@ pub async fn proration_quote(
 
 // ── Charge-succeeded consumer (BIL-6) ────────────────────────────────────
 
-/// Mark an invoice paid when its charge succeeds — invoked by the
+/// Mark an invoice paid when its charge succeeds - invoked by the
 /// payments-side consumer wiring (the invoice's idempotency key links
 /// the charge: `invoice-{id}`).
 ///
@@ -702,7 +702,7 @@ pub async fn handle_charge_succeeded(state: &AppState, env_id: Uuid, payload: se
     // The billing-issued charge carries idempotency_key `invoice-{id}`.
     let idempotency_key = payload["idempotency_key"].as_str().unwrap_or("");
     let Some(invoice_str) = idempotency_key.strip_prefix("invoice-") else {
-        return; // Not a billing charge — nothing to mark.
+        return; // Not a billing charge - nothing to mark.
     };
     let Ok(invoice_id) = Uuid::parse_str(invoice_str) else {
         return;

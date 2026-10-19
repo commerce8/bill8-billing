@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 // SPDX-License-Identifier: Apache-2.0
 
-//! # Bill8:Billing — recurring billing
+//! # Bill8:Billing - recurring billing
 //!
 //! Products, prices, subscriptions, invoices, usage metering, coupons,
 //! credits, and credit notes. Proration nets to the cent (half-up);

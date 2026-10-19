@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 // SPDX-License-Identifier: Apache-2.0
 
-//! The proration engine — PURE cent-exact money math (billing DESIGN.md
+//! The proration engine - PURE cent-exact money math (billing DESIGN.md
 //! §8). Half-up rounding to the minor unit; the sum of proration parts
 //! always equals the computed total exactly.
 
@@ -33,11 +33,11 @@ fn add_months_clamped(t: DateTime<Utc>, months: i32) -> DateTime<Utc> {
     let (y, m) = div_rem(total, 12);
     // Resolve the target month's length FIRST (direct with_month on a
     // 29th/30th/31st can be invalid in the target month and chrono
-    // returns None — the fallback silently keeps the wrong date).
+    // returns None - the fallback silently keeps the wrong date).
     let last = last_day_of(y, m + 1);
     let clamped_day = t.day().min(last);
     // Build from Jan 1 of the target year (always valid), then set the
-    // month/day — the day is already clamped so the combination is
+    // month/day - the day is already clamped so the combination is
     // valid. Billing cycles are date-granular; the time is midnight.
     first_of(y, 1)
         .with_month((m + 1) as u32)
@@ -58,7 +58,7 @@ fn add_years_clamped(t: DateTime<Utc>, years: i32) -> DateTime<Utc> {
         .unwrap_or_else(|| first_of(y, month))
 }
 
-/// The first day of a (year, month) as midnight UTC — built from
+/// The first day of a (year, month) as midnight UTC - built from
 /// January 1 (always valid) so the month switch can't fall back.
 fn first_of(year: i32, month: i32) -> DateTime<Utc> {
     let base = DateTime::parse_from_rfc3339(&format!("{year:04}-01-01T00:00:00Z"))
@@ -157,7 +157,7 @@ mod tests {
     #[test]
     fn half_up_rounding_to_the_cent() {
         // $10.00 / 3 days: credit for 1 unused day = 10/3 = 3.33(3) → 3.33.
-        // (Decimal::new(1000, 2) = $10.00 — the minor-unit form.)
+        // (Decimal::new(1000, 2) = $10.00 - the minor-unit form.)
         let ten = Decimal::new(1000, 2);
         let credit = unused_credit(ten, 3, 2);
         assert_eq!(credit, Decimal::new(333, 2)); // 3.33
@@ -170,7 +170,7 @@ mod tests {
     fn parts_reconcile_to_the_cent() {
         // Property: the credit for the UNUSED span and the charge for the
         // SAME unused span reconcile to the span's value (both are the
-        // same fraction of the cycle at the same price — only rounding
+        // same fraction of the cycle at the same price - only rounding
         // differs); the used + remaining charges partition the cycle.
         let amount = Decimal::from(9999); // $99.99
         let cycle = 31;

@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 // SPDX-License-Identifier: Apache-2.0
 
-//! Bill8:Billing binary — boots on the platform `sentin8::shell`.
+//! Bill8:Billing binary - boots on the platform `sentin8::shell`.
 
 #[allow(dead_code)]
 mod auth;

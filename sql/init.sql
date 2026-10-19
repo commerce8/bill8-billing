@@ -3,7 +3,7 @@
 -- SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 -- SPDX-License-Identifier: Apache-2.0
 
--- Bill8:Billing — the service's own schema `billing`: products,
+-- Bill8:Billing - the service's own schema `billing`: products,
 -- prices, subscriptions, invoices, usage, coupons, credits, credit notes.
 
 CREATE SCHEMA IF NOT EXISTS billing;

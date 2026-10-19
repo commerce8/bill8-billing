@@ -1,4 +1,4 @@
-# Bill8:Billing — Detailed Design Document
+# Bill8:Billing - Detailed Design Document
 
 ## 1. Scope & Context
 
@@ -10,13 +10,13 @@ Sentin8:Cron, and the `bill8:billing:*` event family.
 
 It does NOT own: money movement (Bill8:Ledger), charge execution
 (Bill8:Payments), workflow orchestration (Sentin8:Flow), or
-scheduling (Sentin8:Cron — billing supplies the due-invoice execution).
+scheduling (Sentin8:Cron - billing supplies the due-invoice execution).
 
 Billing owns the **subscription lifecycle richness**: trials, billing
-anchors, pause/resume, dunning — and the **invoice richness**:
+anchors, pause/resume, dunning - and the **invoice richness**:
 pricing models (flat/tiered/volume/packaged usage), read-only previews
 (upcoming invoice, proration quotes), credit notes (invoice-level
-adjustments — charge-level refunds belong to payments), explicit tax
+adjustments - charge-level refunds belong to payments), explicit tax
 lines, and invoice PDF/email delivery (documents via Sentin8:Storage,
 email via Sentin8:Post).
 
@@ -104,9 +104,9 @@ erDiagram
 | `dunning_configs` | Per-env retry ladders for past-due invoices |
 
 **Producer tables** (platform contracts, `billing` leaf schema):
-`billing.outbox` (DBX producer path — architecture-principles §6.7) and
+`billing.outbox` (DBX producer path - architecture-principles §6.7) and
 `billing.audit_journal` (the 15-column contract of
-`sentin8_audit::audit_journal_sql`, AUDJOUR-1 — env-pinned RLS, drained
+`sentin8_audit::audit_journal_sql`, AUDJOUR-1 - env-pinned RLS, drained
 to Sys `POST /v1/audit` by the shell's boot-8c pusher).
 
 **State machines**:
@@ -150,13 +150,13 @@ stateDiagram-v2
 | Coupons | `/v1/coupons` | `bill8:billing:coupons:{read,write}` | `coupon:created/updated` |
 | Credits | `/v1/credits` | `bill8:billing:credits:{read,write}` | `credit:created/updated` |
 | Credit notes | `/v1/credit-notes`, `/v1/credit-notes/{id}/void` | `bill8:billing:credit-notes:{read,write}` | `credit_note:issued/voided` |
-| Entitlements | `/v1/entitlements` | `bill8:billing:entitlements:read` | — |
-| Previews | `/v1/invoices/upcoming`, `/v1/subscriptions/preview` | `bill8:billing:invoices:read` | — (read-only, zero writes) |
+| Entitlements | `/v1/entitlements` | `bill8:billing:entitlements:read` | - |
+| Previews | `/v1/invoices/upcoming`, `/v1/subscriptions/preview` | `bill8:billing:invoices:read` | - (read-only, zero writes) |
 | Tax rates | `/v1/tax-rates` | `bill8:billing:tax-rates:{read,write}` | `tax_rate:created/updated` |
 | Invoice document | `/v1/invoices/{id}/pdf` (signed link) | `bill8:billing:invoices:read` | `invoice:emailed` |
-| Internal | `/v1/internal/*` | M2M | — |
+| Internal | `/v1/internal/*` | M2M | - |
 
-**Dunning ladder** — a per-env retry schedule (`dunning_configs`):
+**Dunning ladder** - a per-env retry schedule (`dunning_configs`):
 each step re-charges the past-due invoice and notifies via
 Sentin8:Post; the ladder is data (count, backoff), never ad hoc;
 exhaustion cancels the subscription (guarded terminal transition).
@@ -174,7 +174,7 @@ exhaustion cancels the subscription (guarded terminal transition).
 flowchart TD
     CHARGE_FAIL["invoice charge fails"] -->|"subscription → past_due"| RETRY["next invoice run retries"]
     PRORATE["proration drift"] -->|"deterministic half-up"| CENT["reconciles to the cent"]
-    RELAY_FAIL["Bus outage"] -->|"producer"| OUTBOX["billing.outbox persists — retry ≤10"]
+    RELAY_FAIL["Bus outage"] -->|"producer"| OUTBOX["billing.outbox persists - retry ≤10"]
     CRASH["crash mid-tx"] -->|"atomic"| RB["subscription + invoice + outbox roll back"]
 ```
 
@@ -196,8 +196,8 @@ flowchart TD
 
 ```mermaid
 graph TD
-    U["Unit — proration math, metering aggregation,<br/>coupon/credit application"] --> I["Integration — DB-backed subscription/invoice suites"]
-    I --> E["E2E — e2e-ts UI + BFF proxy only"]
+    U["Unit - proration math, metering aggregation,<br/>coupon/credit application"] --> I["Integration - DB-backed subscription/invoice suites"]
+    I --> E["E2E - e2e-ts UI + BFF proxy only"]
 ```
 
 ## 10. Open Questions

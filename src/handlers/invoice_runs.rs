@@ -3,7 +3,7 @@
 // SPDX-FileCopyrightText: Copyright Contributors to the Bill8:Billing
 // SPDX-License-Identifier: Apache-2.0
 
-//! Invoice-run engine (BIL-6) — the Cron proxy-back that finalizes due
+//! Invoice-run engine (BIL-6) - the Cron proxy-back that finalizes due
 //! invoices, charges them through the payments PUBLIC API, and the
 //! payments-side consumer that marks invoices paid when charges
 //! succeed. Plus the dunning ladder (BIL-12): a data-driven retry
@@ -20,7 +20,7 @@ use crate::auth;
 use crate::handlers::{emit_event, err_db, set_tenant_context, AppState};
 use crate::proration;
 
-/// `POST /v1/internal/invoices/run` — the Cron proxy-back tick: find
+/// `POST /v1/internal/invoices/run` - the Cron proxy-back tick: find
 /// subscriptions due this cycle, aggregate usage, finalize invoices,
 /// charge via the payments public API. Idempotent per
 /// (subscription, cycle): a subscription with an open/paid/retrying
@@ -46,7 +46,7 @@ pub async fn run_invoice_cycle(
         .map_err(err_db)?;
 
     // Subscriptions active or past-due whose cycle has ended (paused
-    // and canceled subscriptions generate no invoices — BIL-11).
+    // and canceled subscriptions generate no invoices - BIL-11).
     let due = sqlx::query(
         r#"SELECT s.id, s.customer_id, s.current_period_end, s.status
            FROM billing.subscriptions s
@@ -214,7 +214,7 @@ pub async fn run_invoice_cycle(
                     // on charge:succeeded (event-driven; no sync write).
                 }
                 Err(e) => {
-                    tracing::warn!(error = %e, "invoice charge failed — subscription goes past_due on the dunning ladder");
+                    tracing::warn!(error = %e, "invoice charge failed - subscription goes past_due on the dunning ladder");
                     sqlx::query(
                         "UPDATE billing.subscriptions SET status = 'past_due' WHERE id = $1 AND status IN ('active', 'incomplete')",
                     )
@@ -249,7 +249,7 @@ pub async fn run_invoice_cycle(
 }
 
 /// Charge an invoice through the payments public API (the workload
-/// certificate carries the identity — the receiving service resolves
+/// certificate carries the identity - the receiving service resolves
 /// it against the registry map).
 async fn charge_invoice(
     state: &AppState,
@@ -284,7 +284,7 @@ async fn charge_invoice(
         .ok_or_else(|| "payments returned no charge id".to_string())
 }
 
-/// `GET /v1/invoices/upcoming` — the read-only upcoming-invoice preview
+/// `GET /v1/invoices/upcoming` - the read-only upcoming-invoice preview
 /// (BIL-14): projects the next cycle's invoice for a subscription with
 /// ZERO writes.
 #[utoipa::path(
@@ -387,7 +387,7 @@ pub struct UpcomingQuery {
     pub subscription_id: Uuid,
 }
 
-/// `POST /v1/internal/dunning/retry` — the dunning-ladder tick (BIL-12):
+/// `POST /v1/internal/dunning/retry` - the dunning-ladder tick (BIL-12):
 /// re-charge past-due invoices on the configured schedule. The ladder
 /// is DATA (`dunning_configs` rows): count + backoff per env; after the
 /// final failure the subscription cancels (guarded terminal).
@@ -464,7 +464,7 @@ pub async fn dunning_retry(
             Ok(_) => recovered += 1,
             Err(_) => {
                 // Count the attempt on the invoice itself (the ladder's
-                // state lives on the invoice row — see DESIGN.md §3).
+                // state lives on the invoice row - see DESIGN.md §3).
                 sqlx::query(
                     "UPDATE billing.invoices SET dunning_attempts = dunning_attempts + 1 WHERE id = $1",
                 )

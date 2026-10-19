@@ -22,13 +22,13 @@ pub struct BillingConfig {
     pub sentin8_auth_jwks_url: String,
     /// Bus base URL.
     pub sentin8_bus_url: String,
-    /// Bill8:Payments base URL — invoice charges via the
+    /// Bill8:Payments base URL - invoice charges via the
     /// `bill8-billing-payments` workload certificate (public API only).
     pub bill8_payments_url: String,
     /// Shared Auth client.
     pub sentin8_auth_client: AuthClient,
     /// Certificate-presenting transport for the service's own workload
-    /// identity (CERTFREE-4V — no M2M token exists).
+    /// identity (CERTFREE-4V - no M2M token exists).
     pub m2m_http: Option<reqwest::Client>,
     /// Certificate-presenting transport for the cross-service payments
     /// workload (invoice charges).
