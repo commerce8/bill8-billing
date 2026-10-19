@@ -11,6 +11,9 @@
 use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
+use bill8::billing::contracts::{
+    CreateCreditNoteRequest, CreateCreditRequest, CreateCouponRequest, CreateTaxRateRequest,
+};
 use rust_decimal::Decimal;
 use sqlx::Row;
 use uuid::Uuid;
@@ -25,7 +28,7 @@ use crate::proration;
 #[utoipa::path(
     post,
     path = "/v1/coupons",
-    request_body = serde_json::Value,
+    request_body = CreateCouponRequest,
     responses(
         (status = 200, description = "Coupon created"),
         (status = 403, description = "Missing bill8:billing:coupons:write"),
@@ -36,7 +39,7 @@ use crate::proration;
 pub async fn create_coupon(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(body): Json<serde_json::Value>,
+    Json(body): Json<CreateCouponRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -46,11 +49,11 @@ pub async fn create_coupon(
         sentin8::shield::EvalTarget::new("bill8:billing:coupons:write"),
     )
     .await?;
-    let code = body["code"].as_str().unwrap_or_default().trim().to_string();
+    let code = body.code.trim().to_string();
     if code.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "code required".into()));
     }
-    let discount_kind = match body["discount_kind"].as_str().unwrap_or("percentage") {
+    let discount_kind = match body.discount_kind.as_str() {
         "fixed" => "fixed",
         _ => "percentage",
     };
@@ -68,13 +71,9 @@ pub async fn create_coupon(
     .bind(a.env_id())
     .bind(&code)
     .bind(discount_kind)
-    .bind(body["value"].as_str().unwrap_or("0"))
-    .bind(body["redemption_limit"].as_i64())
-    .bind(
-        body["expires_at"]
-            .as_str()
-            .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok()),
-    )
+    .bind(&body.value)
+    .bind(body.redemption_limit)
+    .bind(body.expires_at)
     .execute(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -159,7 +158,7 @@ pub async fn redeem_coupon(
 #[utoipa::path(
     post,
     path = "/v1/credits",
-    request_body = serde_json::Value,
+    request_body = CreateCreditRequest,
     responses(
         (status = 200, description = "Credit granted"),
         (status = 403, description = "Missing bill8:billing:credits:write"),
@@ -170,7 +169,7 @@ pub async fn redeem_coupon(
 pub async fn create_credit(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(body): Json<serde_json::Value>,
+    Json(body): Json<CreateCreditRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -180,14 +179,11 @@ pub async fn create_credit(
         sentin8::shield::EvalTarget::new("bill8:billing:credits:write"),
     )
     .await?;
-    let customer_id: Uuid = body["customer_id"]
-        .as_str()
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "customer_id required".into()))?;
-    let amount: Decimal = body["amount"]
-        .as_str()
-        .and_then(|s| s.parse().ok())
-        .ok_or_else(|| {
+    let customer_id: Uuid = body.customer_id;
+    let amount: Decimal = body
+        .amount
+        .parse()
+        .map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
                 "amount must be a decimal string".into(),
@@ -210,7 +206,7 @@ pub async fn create_credit(
     .bind(a.env_id())
     .bind(customer_id)
     .bind(amount)
-    .bind(body["currency"].as_str().unwrap_or("USD"))
+    .bind(&body.currency)
     .execute(&mut *conn)
     .await
     .map_err(err_db)?;
@@ -226,7 +222,7 @@ pub async fn create_credit(
 #[utoipa::path(
     post,
     path = "/v1/credit-notes",
-    request_body = serde_json::Value,
+    request_body = CreateCreditNoteRequest,
     responses(
         (status = 200, description = "Credit note issued"),
         (status = 422, description = "Over-credit - nothing written"),
@@ -238,7 +234,7 @@ pub async fn create_credit(
 pub async fn create_credit_note(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(body): Json<serde_json::Value>,
+    Json(body): Json<CreateCreditNoteRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -248,14 +244,11 @@ pub async fn create_credit_note(
         sentin8::shield::EvalTarget::new("bill8:billing:credit-notes:write"),
     )
     .await?;
-    let invoice_id: Uuid = body["invoice_id"]
-        .as_str()
-        .and_then(|s| Uuid::parse_str(s).ok())
-        .ok_or_else(|| (StatusCode::BAD_REQUEST, "invoice_id required".into()))?;
-    let amount: Decimal = body["amount"]
-        .as_str()
-        .and_then(|s| s.parse().ok())
-        .ok_or_else(|| {
+    let invoice_id: Uuid = body.invoice_id;
+    let amount: Decimal = body
+        .amount
+        .parse()
+        .map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
                 "amount must be a decimal string".into(),
@@ -366,7 +359,7 @@ pub async fn void_credit_note(
 #[utoipa::path(
     post,
     path = "/v1/tax-rates",
-    request_body = serde_json::Value,
+    request_body = CreateTaxRateRequest,
     responses(
         (status = 200, description = "Tax rate saved"),
         (status = 403, description = "Missing bill8:billing:tax-rates:write"),
@@ -377,7 +370,7 @@ pub async fn void_credit_note(
 pub async fn create_tax_rate(
     State(state): State<AppState>,
     headers: HeaderMap,
-    Json(body): Json<serde_json::Value>,
+    Json(body): Json<CreateTaxRateRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let a = auth::verify_token(&state.config, &headers).await?;
     crate::policy::require(
@@ -387,11 +380,7 @@ pub async fn create_tax_rate(
         sentin8::shield::EvalTarget::new("bill8:billing:tax-rates:write"),
     )
     .await?;
-    let jurisdiction = body["jurisdiction"]
-        .as_str()
-        .unwrap_or_default()
-        .trim()
-        .to_string();
+    let jurisdiction = body.jurisdiction.trim().to_string();
     if jurisdiction.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "jurisdiction required".into()));
     }
@@ -408,8 +397,8 @@ pub async fn create_tax_rate(
     .bind(id)
     .bind(a.env_id())
     .bind(&jurisdiction)
-    .bind(body["inclusive"].as_bool().unwrap_or(false))
-    .bind(body["rate_bps"].as_i64().unwrap_or(0) as i32)
+    .bind(body.inclusive)
+    .bind(body.rate_bps)
     .execute(&mut *conn)
     .await
     .map_err(err_db)?;
