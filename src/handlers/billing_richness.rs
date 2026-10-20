@@ -12,7 +12,7 @@ use axum::extract::{Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::Json;
 use bill8::billing::contracts::{
-    CreateCreditNoteRequest, CreateCreditRequest, CreateCouponRequest, CreateTaxRateRequest,
+    CreateCouponRequest, CreateCreditNoteRequest, CreateCreditRequest, CreateTaxRateRequest,
 };
 use rust_decimal::Decimal;
 use sqlx::Row;
@@ -180,15 +180,12 @@ pub async fn create_credit(
     )
     .await?;
     let customer_id: Uuid = body.customer_id;
-    let amount: Decimal = body
-        .amount
-        .parse()
-        .map_err(|_| {
-            (
-                StatusCode::BAD_REQUEST,
-                "amount must be a decimal string".into(),
-            )
-        })?;
+    let amount: Decimal = body.amount.parse().map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            "amount must be a decimal string".into(),
+        )
+    })?;
     if amount <= Decimal::ZERO {
         return Err((StatusCode::BAD_REQUEST, "amount must be positive".into()));
     }
@@ -245,15 +242,12 @@ pub async fn create_credit_note(
     )
     .await?;
     let invoice_id: Uuid = body.invoice_id;
-    let amount: Decimal = body
-        .amount
-        .parse()
-        .map_err(|_| {
-            (
-                StatusCode::BAD_REQUEST,
-                "amount must be a decimal string".into(),
-            )
-        })?;
+    let amount: Decimal = body.amount.parse().map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            "amount must be a decimal string".into(),
+        )
+    })?;
     if amount <= Decimal::ZERO {
         return Err((StatusCode::BAD_REQUEST, "amount must be positive".into()));
     }
