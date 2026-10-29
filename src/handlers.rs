@@ -85,7 +85,7 @@ pub async fn emit_event(
 )]
 /// Health probe payload.
 ///
-/// Carries the binary's build identity (`version`/`build`, BUILDID-1) so
+/// Carries the binary's build identity (`version`/`build`,) so
 /// captain's monitor populates `make status`'s VERSION column - the
 /// consuming BINARY's identity, never a shared crate's (env!(
 /// CARGO_PKG_VERSION) here reported only the bare crate version with no
