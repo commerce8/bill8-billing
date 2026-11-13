@@ -15,6 +15,15 @@ mod consumers;
 mod handlers;
 #[allow(dead_code)]
 mod openapi;
+
+// The utoipa dump as a fn pointer for registration.rs (which cannot
+// name crate::openapi - embedded test harnesses have no openapi module;
+// see registration.rs and the mirrored static in lib.rs).
+static OPENAPI_DUMP: fn() -> serde_json::Value = || {
+    use utoipa::OpenApi as _;
+    serde_json::to_value(openapi::BillingOpenApi::openapi()).unwrap_or(serde_json::Value::Null)
+};
+
 mod policy;
 #[allow(dead_code)]
 mod proration;
